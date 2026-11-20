@@ -1,0 +1,10 @@
+{
+  "id": "warung-desa",
+  "name": "Warung Desa",
+  "engine": "2d",
+  "entry": "index.html",
+  "authority": "host",
+  "maxPlayers": 4,
+  "routing": "static",
+  "leaderboards": [{ "id": "koin", "sort": "desc", "aggregate": "best", "window": "all" }]
+}

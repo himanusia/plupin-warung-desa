@@ -1,0 +1,24 @@
+{
+  "name": "plupin-warung-desa",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Warung Desa: the official Plupin example game. A village food stall that shows characters and animated emotes, then rooms, leaderboards, free rolls and purchases, one feature per file.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src",
+    "preview": "vite preview --port 4173 --strictPort"
+  },
+  "dependencies": {
+    "@plupin/game-sdk": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.0",
+    "@types/node": "^26.6.5",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  },
+  "//character": "@plupin/character is not on npm yet: vite.config.ts and tsconfig.json resolve it to ../../packages/character inside a platform checkout. When it is published, run `bun add @plupin/character` and delete the alias and the paths entries."
+}

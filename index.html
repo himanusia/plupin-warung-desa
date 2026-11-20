@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="theme-color" content="#2b1d12" />
+		<title>Warung Desa</title>
+	</head>
+	<body>
+		<main class="page">
+			<header class="hud">
+				<span class="chip">waktu <b data-testid="time">90</b></span>
+				<span class="chip">koin <b data-testid="coins">0</b></span>
+				<span class="chip">dilayani <b data-testid="served">0</b></span>
+			</header>
+
+			<div class="field" data-testid="field">
+				<canvas id="field" aria-label="Warung desa"></canvas>
+				<section class="over" data-testid="over" hidden>
+					<h1 data-testid="stars"></h1>
+					<p data-testid="summary"></p>
+					<button type="button" data-testid="again">Main lagi</button>
+				</section>
+			</div>
+
+			<p class="hint" data-testid="hint">Ketuk bahan, ketuk wajan untuk goreng tempe, lalu ketuk pelanggan.</p>
+		</main>
+
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+</html>
