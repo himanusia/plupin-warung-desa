@@ -1,0 +1,69 @@
+<!doctype html><html lang="id"><meta charset="utf-8"><title>Warung Desa: dokumentasi</title>
+<style>body{font:13px/1.55 -apple-system,Helvetica,Arial,sans-serif;max-width:800px;margin:24px auto;color:#1a1233}h1{font-size:28px;margin:0 0 4px}h2{font-size:17px;margin:26px 0 8px;border-bottom:2px solid #b9a6ff;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #c9bff5;padding:5px 8px;vertical-align:top;font-size:12px}th{background:#efeaff;text-align:left}code{background:#f1edff;padding:1px 5px;border-radius:4px;font-size:12px}img{width:100%;border:2px solid #1a1233;border-radius:10px;margin:6px 0}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.note{background:#fff6dd;border:2px solid #f0c040;border-radius:10px;padding:8px 12px;margin:10px 0}small{color:#555}</style>
+<h1>Warung Desa</h1>
+<p><b>Game official Plupin pertama, dan contoh pemakaian tiap fitur SDK.</b><br>
+Main: <b>https://warung-desa.plupin.com</b> · Repo: <b>github.com/himanusia/plupin-warung-desa</b> (submodule <code>example/warung-desa</code> di repo plupin) · Dipublikasikan dari akun <b>Plupin</b> (centang emas) lewat <code>plupin up</code>.</p>
+
+<h2>1. Gamenya</h2>
+<p>Warung desa 3D untuk 1–4 pemain. Pelanggan datang dengan pesanan di atas kepalanya. Ambil nasi dan sambal, goreng tempe di wajan (3 detik, tunggu <b>ting!</b>), susun piring sesuai pesanan, lalu ketuk pelanggannya. Piring benar dibayar, cepat dapat tip, <b>pesanan spesial hari ini</b> dibayar +50%, piring salah dibuang, dan pelanggan yang menunggu terlalu lama ngambek lalu pergi. Satu shift 90 detik; 60, 110, dan 160 koin = 1, 2, 3 bintang.</p>
+<div class="two"><img src="screens/1-judul-desktop.jpg"><img src="screens/4-sajian-desktop.jpg"></div>
+<p><small>Kiri: layar judul (desktop). Kanan: momen sajian, pelanggan senang dengan bintang dan konfeti, koki beremot, banner spesial.</small></p>
+
+<h3>Kontrol</h3>
+<p>Ketuk atau klik bakul nasi, cobek sambal, atau wajan: Plup lo melompat ke sana dan memakainya. Ketuk pelanggan untuk melayani. Suara menyala di ketukan pertama; tombol di pojok kanan atas mematikannya. Layout menyesuaikan layar: desktop lebar, dan di HP stasiun serta pelanggan dirapatkan supaya adegan memenuhi layar.</p>
+
+<h2>2. Party: cara undang pelanggan/teman lo</h2>
+<ol>
+<li><b>Dari dalam game:</b> tekan <b>AJAK TEMAN</b> di layar judul. Ruang tunggu menampilkan siapa saja yang ada (maks 4), hanya <b>host</b> yang bisa menekan <b>MULAI</b>, tamu melihat "MENUNGGU HOST…". Tombol <b>UNDANG TEMAN</b> membuka share sheet (atau menyalin link game).</li>
+<li><b>Dari Lobby Plupin (party platform):</b> buka plupin.com/lobby, tekan <b>Undang</b> (pilih teman atau salin link), lalu <b>Mulai</b>. Semua anggota party dibawa ke game dengan kode party (<code>?p=kode</code>) yang otomatis mendudukkan mereka di room yang sama (<code>new Room({ party })</code>). Game tidak bisa membuat kode party; lobby platform yang membuatnya, jadi game hanya membaca kodenya.</li>
+<li><b>Link biasa:</b> kirim link game; siapa pun yang membukanya dan memilih Ajak Teman masuk ke ruangan yang sama.</li>
+</ol>
+<div class="two"><img src="screens/2-ruang-tunggu-desktop.jpg"><img src="screens/2-ruang-tunggu-hp.jpg"></div>
+<p><small>Ruang tunggu di desktop (host) dan di HP (tamu), diambil dari produksi.</small></p>
+<div class="two"><img src="screens/5-hitung-mundur.jpg"><img src="screens/7-dua-pemain-desktop.jpg"></div>
+<p><small>Hitung mundur 3-2-1-GO setelah host menekan Mulai, lalu dua pemain di satu warung (yang satu dari HP). Game tidak jalan sebelum host menekan Mulai.</small></p>
+
+<h2>3. Karakter dan emot</h2>
+<p>Semua pemain dan pelanggan adalah <b>Plup</b>, mascot yang sama dengan lobby (<code>createPlup</code> dari <code>@plupin/character/three</code>): badan bulat toon dengan outline tinta dan neon, tangan dan kaki karet, wajah dari stamp bernama. Roblox tidak dipakai di mana pun. Emot berupa data (nama, wajah, glyph, klip): yang gratis dari <code>EMOTES</code>, ditambah <b>Sorak</b> (emot animasi official yang dijual di shop) yang dimainkan dari keyframe yang sama, dan klip jalan <b>WADDLE</b> yang ditulis game sendiri. Pelanggan berganti wajah (tenang, cemas, marah) menurut kesabarannya dan memakai aksesori berbeda.</p>
+
+<h2>4. Grafik, animasi, audio</h2>
+<table><tr><th>Apa</th><th>Bagaimana</th></tr>
+<tr><td>Dunia 3D</td><td>three.js, shading toon berpita dan outline tinta yang sama dengan Plup: warung bambu, kanopi bergaris, lampu gantung, jendela ke sawah dan palma, bakul nasi berkukus, wajan dengan api, cobek sambal.</td></tr>
+<tr><td>Juice</td><td>squash-and-stretch di semua lompatan dan ambilan, bahan terbang melengkung ke piring, partikel (uap, percik, asap wajan, konfeti), getar kamera, hit-stop saat melayani, angka melayang, koin terbang ke penghitung, bintang muncul satu per satu, timer berdenyut di 10 detik terakhir.</td></tr>
+<tr><td>UI</td><td>HUD cincin timer dan koin, gelembung pesanan yang menempel di kepala pelanggan dengan meter kesabaran, layar judul dengan huruf melompat dan pilihan nama dan warna Plup, ruang tunggu, tutorial, hitung mundur, layar hasil.</td></tr>
+<tr><td>Audio</td><td>Semua disintesis di browser (Web Audio), tanpa berkas audio: musik marimba pentatonik dengan bass dan shaker yang mempercepat di 15 detik terakhir, plus efek (ambil bahan, desis wajan, ting, koin, sajian, salah, pergi, hitung mundur, bintang, fanfare). Tombol bisukan diingat.</td></tr></table>
+<div class="two"><img src="screens/6-main-hp.jpg"><img src="screens/8-hasil.jpg"></div>
+<p><small>Kiri: tampilan HP. Kanan: layar hasil dari satu shift nyata di produksi (116 koin, 7 pelanggan, 2 bintang).</small></p>
+
+<h2>5. Fitur SDK yang diperlihatkan</h2>
+<table><tr><th>File</th><th>Fitur</th></tr>
+<tr><td><code>src/game.ts</code></td><td>aturan murni (waktu masuk sebagai parameter, acak dari seed, ruang tunggu sebelum shift); 9 tes</td></tr>
+<tr><td><code>src/actors.ts</code>, <code>emotes.ts</code></td><td><code>createPlup</code>, emot, klip kustom</td></tr>
+<tr><td><code>src/scene.ts</code>, <code>toon.ts</code>, <code>fx.ts</code>, <code>audio.ts</code></td><td>dunia toon responsif, juice, audio sintetis</td></tr>
+<tr><td><code>src/net.ts</code></td><td><code>Room</code>, <code>Peers</code>, event <code>host</code>, kode party; satu kursi terpilih menjalankan aturan, lainnya mengirim ketukan (<code>authority: "host"</code>)</td></tr>
+<tr><td><code>src/roll.ts</code></td><td><code>rollPlatformRandom</code>: pelanggan spesial dari angka acak platform</td></tr>
+<tr><td><code>src/board.ts</code></td><td><code>Leaderboard</code> (membaca papan yang dideklarasikan)</td></tr>
+<tr><td><code>src/shop.ts</code></td><td><code>requestPurchase</code> dan <code>getEntitlements</code>: celemek emas permanen Σ20; game tidak pernah membelanjakan Sigma</td></tr>
+<tr><td><code>plupin.json</code></td><td>engine 3d, authority host, satu papan, satu produk</td></tr></table>
+
+<h2>6. Angka yang diukur</h2>
+<p>Pengecekan <code>plupin up</code> (iPhone 13, jaringan fast3g): halaman interaktif <b>1,24 detik</b>, <b>0 galat</b>, semua budget terpenuhi. Ukuran bundel 601 KiB mentah, 159 KiB gzip. Teruji di dev dan produksi dengan dua pemain nyata (desktop dan HP): pesanan sama di kedua layar, hanya host yang bisa memulai, undian spesial datang dari platform. Pembelian celemek teruji di dev dengan akun non-pembuat (halaman konfirmasi platform, Σ20).</p>
+
+<h2>7. Batas yang jujur</h2>
+<div class="note"><ul style="margin:0;padding-left:18px">
+<li><b>Papan peringkat hanya membaca.</b> Skor hanya bisa ditulis room yang menyelesaikan match dengan aturan milik platform (dokumen giliran), jadi game dengan aturan sendiri tidak bisa menulis dan klien tidak bisa memalsukannya. Papan <code>koin</code> sudah dideklarasikan dan dibaca, tapi kosong sampai ada mode yang diwasiti.</li>
+<li><b>Audio belum didengar manusia oleh gw.</b> Gw hanya bisa memastikan tidak ada galat saat konteks audio dibuka; kualitas musik dan efek perlu telinga lo.</li>
+<li><b>Pengujian visual</b> memakai Chrome headless (rendering perangkat lunak). Performa di HP asli belum diukur.</li>
+<li><b><code>@plupin/character</code> dan SDK terbaru belum ada di npm</b>; game me-resolve keduanya dari checkout platform (<code>example/</code>) sampai rilis berikutnya.</li>
+<li>Kontrol baru sentuh dan klik; keyboard dan gamepad belum.</li>
+<li>Bentuk 3D selain Plup didukung di API (<code>createPlup({ model })</code>), tapi belum ada jenis listing "model" untuk dijual creator.</li></ul></div>
+
+<h2>8. Menjalankan dan memublikasikan</h2>
+<pre style="background:#f1edff;padding:10px;border-radius:8px;font-size:12px">bun install
+bun test src            # aturan (9 tes)
+bun run typecheck
+bun run build           # mencetak ukuran bundel
+bun run dev             # tambah ?round=20 untuk shift latihan pendek
+plupin up ./dist --api https://api.plupin.com   # dari akun Plupin, lewat cek anggaran</pre>
+<p><small>Pekerjaan platform yang lahir dari game ini: <code>plupin dev</code> menjawab <code>/api/play/random</code> (#934), Plup jadi karakter default 2D dan 3D (#944), pointer <code>example/</code> (#938, #946), promosi ke main (#940, #948).</small></p>
+</html>
