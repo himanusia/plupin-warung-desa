@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+	begin,
 	create,
 	leave,
 	FRY_SECONDS,
@@ -12,6 +13,11 @@ import {
 } from "./game"
 
 const ME = "you"
+const started = (seed: number, special: string | null = null) => {
+	const state = create(seed, special)
+	begin(state)
+	return state
+}
 const first = (state: ReturnType<typeof create>) => {
 	tick(state, 1)
 	const order = state.orders.find((entry) => entry !== null)
@@ -34,19 +40,30 @@ function plate(state: ReturnType<typeof create>, items: readonly string[], at: n
 }
 
 describe("warung desa rules", () => {
+	test("nothing runs in the waiting room: no customers, no taps, no clock", () => {
+		const state = create(4)
+		expect(tick(state, 50)).toEqual([])
+		expect(state.orders.every((order) => order === null)).toBe(true)
+		expect(tap(state, ME, { station: "nasi" }, 51)).toEqual([])
+		expect(state.over).toBe(false)
+		begin(state)
+		tick(state, 1)
+		expect(state.orders.some(Boolean)).toBe(true)
+	})
+
 	test("a customer arrives at one second and the same seed gives the same shift", () => {
-		const a = create(7)
-		const b = create(7)
+		const a = started(7)
+		const b = started(7)
 		for (let t = 1; t <= 60; t += 1) {
 			tick(a, t)
 			tick(b, t)
 		}
 		expect(a.orders.map((o) => o?.recipe.id)).toEqual(b.orders.map((o) => o?.recipe.id))
-		expect(first(create(7)).order.recipe.id).toBe(first(create(7)).order.recipe.id)
+		expect(first(started(7)).order.recipe.id).toBe(first(started(7)).order.recipe.id)
 	})
 
 	test("the wok takes three seconds and tempe cannot be taken early", () => {
-		const state = create(1)
+		const state = started(1)
 		expect(tap(state, ME, { station: "wajan" }, 1)).toEqual([{ kind: "frying" }])
 		expect(tap(state, ME, { station: "wajan" }, 2)).toEqual([])
 		expect(state.plates[ME]).toEqual([])
@@ -57,7 +74,7 @@ describe("warung desa rules", () => {
 	})
 
 	test("the right plate is paid with a tip for speed, the wrong plate is thrown away", () => {
-		const fast = create(3)
+		const fast = started(3)
 		const { order, slot } = first(fast)
 		const done = plate(fast, order.recipe.items, 1.2)
 		const [served] = tap(fast, ME, { customer: slot }, done)
@@ -65,7 +82,7 @@ describe("warung desa rules", () => {
 		expect(fast.coins).toBeGreaterThan(order.recipe.coins)
 		expect(fast.coins).toBeLessThanOrEqual(Math.ceil(order.recipe.coins * 1.5))
 
-		const wrong = create(3)
+		const wrong = started(3)
 		const next = first(wrong)
 		const other = RECIPES.find((recipe) => recipe.id !== next.order.recipe.id)
 		plate(wrong, other?.items ?? [], 1.2)
@@ -75,7 +92,7 @@ describe("warung desa rules", () => {
 	})
 
 	test("a plate holds three different things, and says so", () => {
-		const state = create(1)
+		const state = started(1)
 		tap(state, ME, { station: "nasi" }, 1)
 		expect(tap(state, ME, { station: "nasi" }, 1.1)).toEqual([{ kind: "have", seat: ME, item: "nasi" }])
 		tap(state, ME, { station: "sambal" }, 1.2)
@@ -83,7 +100,7 @@ describe("warung desa rules", () => {
 	})
 
 	test("two seats keep their own plates but share the wok and the counter", () => {
-		const state = create(3)
+		const state = started(3)
 		const { order, slot } = first(state)
 		tap(state, "ana", { station: "nasi" }, 1.1)
 		tap(state, "budi", { station: "sambal" }, 1.2)
@@ -101,8 +118,8 @@ describe("warung desa rules", () => {
 	})
 
 	test("today's special pays half again on top of the tip", () => {
-		const plain = create(3)
-		const special = create(3, first(create(3)).order.recipe.id)
+		const plain = started(3)
+		const special = started(3, first(started(3)).order.recipe.id)
 		const a = first(plain)
 		const b = first(special)
 		plate(plain, a.order.recipe.items, 1.2)
@@ -113,7 +130,7 @@ describe("warung desa rules", () => {
 	})
 
 	test("a customer who waits too long leaves", () => {
-		const state = create(5)
+		const state = started(5)
 		first(state)
 		const events = tick(state, 1 + PATIENCE_SECONDS)
 		expect(events.some((event) => event.kind === "left")).toBe(true)
@@ -121,7 +138,7 @@ describe("warung desa rules", () => {
 	})
 
 	test("the shift ends at ninety seconds with stars from the coins, and nothing counts afterwards", () => {
-		const state = create(2)
+		const state = started(2)
 		state.coins = 112
 		const events = tick(state, ROUND_SECONDS)
 		expect(events).toContainEqual({ kind: "over", stars: 2 })

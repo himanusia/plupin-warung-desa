@@ -43,6 +43,12 @@ export interface Order {
 export type Wajan = { state: "idle" } | { state: "frying"; since: number } | { state: "ready" }
 
 export interface State {
+	/** False in the waiting room: nothing runs, nothing pays, until the host starts the shift. */
+	started: boolean
+	/** Seconds the shift lasts. 90 unless a practice link shortens it. */
+	duration: number
+	/** The countdown is running: the host has pressed start but the shift has not begun. */
+	starting: boolean
 	now: number
 	coins: number
 	served: number
@@ -72,8 +78,11 @@ export type GameEvent =
 	| { kind: "left"; slot: number }
 	| { kind: "over"; stars: 0 | 1 | 2 | 3 }
 
-export function create(seed: number, special: string | null = null): State {
+export function create(seed: number, special: string | null = null, duration = ROUND_SECONDS): State {
 	return {
+		started: false,
+		duration,
+		starting: false,
 		now: 0,
 		coins: 0,
 		served: 0,
@@ -104,6 +113,14 @@ export function starsFor(coins: number): 0 | 1 | 2 | 3 {
 const sameItems = (a: readonly Item[], b: readonly Item[]) =>
 	a.length === b.length && [...a].sort().join() === [...b].sort().join()
 
+/** The host starts the shift: the clock begins from zero. */
+export function begin(state: State) {
+	state.started = true
+	state.starting = false
+	state.now = 0
+	state.nextOrderAt = 1
+}
+
 /** A seat sits down at the stall with an empty plate. Idempotent. */
 export function join(state: State, seat: Seat) {
 	state.plates[seat] ??= []
@@ -117,7 +134,7 @@ export function leave(state: State, seat: Seat) {
 /** One tap on a station or a customer. Returns what happened; an impossible tap returns nothing. */
 export function tap(state: State, seat: Seat, target: Target, now: number): GameEvent[] {
 	tick(state, now)
-	if (state.over) return []
+	if (state.over || !state.started) return []
 	join(state, seat)
 	const plate = state.plates[seat] as Item[]
 	if ("customer" in target) {
@@ -161,7 +178,7 @@ export function tap(state: State, seat: Seat, target: Target, now: number): Game
 /** Advance the clock: the wok finishes, patience runs out, customers arrive, the shift ends. */
 export function tick(state: State, now: number): GameEvent[] {
 	const events: GameEvent[] = []
-	if (state.over || now <= state.now) return events
+	if (!state.started || state.over || now <= state.now) return events
 	state.now = now
 	if (state.wajan.state === "frying" && now - state.wajan.since >= FRY_SECONDS) {
 		state.wajan = { state: "ready" }
@@ -174,7 +191,7 @@ export function tick(state: State, now: number): GameEvent[] {
 			events.push({ kind: "left", slot })
 		}
 	})
-	if (now >= ROUND_SECONDS) {
+	if (now >= state.duration) {
 		state.over = true
 		events.push({ kind: "over", stars: starsFor(state.coins) })
 		return events

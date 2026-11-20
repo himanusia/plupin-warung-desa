@@ -60,7 +60,12 @@ export default defineConfig({
 	base: "./",
 	build: { target: "es2022", assetsInlineLimit: 0, modulePreload: { polyfill: false } },
 	resolve: {
+		// One copy of three: the character package lives in the platform checkout and would otherwise bring
+		// its own, and two copies cannot share a scene.
+		dedupe: ["three"],
 		alias: [
+			{ find: /^three$/, replacement: resolve("node_modules/three/build/three.module.js") },
+			{ find: /^three\/examples\/(.*)$/, replacement: resolve("node_modules/three/examples/$1") },
 			...(characterSource
 				? [{ find: /^@plupin\/character(\/.*)?$/, replacement: `${characterSource}/src$1` }]
 				: []),

@@ -2,34 +2,90 @@
 <html lang="id">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<meta name="theme-color" content="#2b1d12" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+		<meta name="theme-color" content="#241a45" />
 		<title>Warung Desa</title>
+		<link rel="icon" href="data:," />
 	</head>
 	<body>
-		<main class="page">
-			<header class="hud">
-				<span class="chip">room <b data-testid="room">solo</b></span>
-				<span class="chip">pemain <b data-testid="players">1</b></span>
-				<span class="chip">waktu <b data-testid="time">90</b></span>
-				<span class="chip">koin <b data-testid="coins">0</b></span>
-				<span class="chip">dilayani <b data-testid="served">0</b></span>
+		<div class="game" data-testid="field">
+			<canvas id="game" aria-label="Warung desa, game masak bareng"></canvas>
+
+			<div class="vignette"></div>
+			<div id="bubbles" class="layer"></div>
+			<div id="floaters" class="layer"></div>
+
+			<header class="hud" id="hud" hidden>
+				<div class="timer" id="timer">
+					<svg viewBox="0 0 44 44" aria-hidden="true"><circle class="track" cx="22" cy="22" r="19" /><circle class="bar" id="timer-bar" cx="22" cy="22" r="19" /></svg>
+					<b data-testid="time">90</b>
+				</div>
+				<div class="special" id="special" hidden><span class="star">★</span> <span id="special-text"></span></div>
+				<div class="coins" id="coins-chip"><i class="coin"></i><b data-testid="coins">0</b></div>
 			</header>
+			<button class="icon sound" id="mute" type="button" aria-label="Suara"><span id="mute-icon">♪</span></button>
+			<div class="hud-extra"><span data-testid="served">0</span><span data-testid="room">solo</span><span data-testid="players">1</span></div>
+			<p class="hint" id="hint" hidden></p>
+			<div class="countdown" id="countdown" hidden><b>3</b></div>
 
-			<div class="field" data-testid="field">
-				<canvas id="field" aria-label="Warung desa"></canvas>
-				<section class="over" data-testid="over" hidden>
-					<h1 data-testid="stars"></h1>
-					<p data-testid="summary"></p>
-					<ol class="board" data-testid="board"></ol>
-					<button type="button" data-testid="buy" hidden>Celemek emas · Σ20</button>
-					<button type="button" data-testid="again">Main lagi</button>
-				</section>
-			</div>
+			<section class="screen" id="title" data-testid="title">
+				<div class="panel title-panel">
+					<h1 class="logo" aria-label="Warung Desa"><span class="word"></span></h1>
+					<p class="tagline">Masak bareng, layani yang lapar, kejar bintang.</p>
+					<div class="who">
+						<input id="name" maxlength="12" autocomplete="off" aria-label="Namamu" placeholder="Namamu" />
+						<div class="swatches" id="swatches" role="radiogroup" aria-label="Warna Plup"></div>
+					</div>
+					<div class="buttons">
+						<button class="big primary" id="play-solo" type="button" data-testid="start">MAIN</button>
+						<button class="big" id="play-party" type="button" data-testid="party">AJAK TEMAN</button>
+						<button class="big ghost" id="open-help" type="button">CARA MAIN</button>
+					</div>
+				</div>
+			</section>
 
-			<p class="hint" data-testid="hint">Ketuk bahan, ketuk wajan untuk goreng tempe, lalu ketuk pelanggan.</p>
-		</main>
+			<section class="screen" id="lobby" data-testid="lobby" hidden>
+				<div class="panel">
+					<h2>Ruang tunggu</h2>
+					<p class="sub" id="lobby-sub">Menyambung…</p>
+					<ul class="seats" id="seats" data-testid="seats"></ul>
+					<div class="buttons">
+						<button class="big primary" id="lobby-start" type="button" data-testid="lobby-start">MULAI</button>
+						<button class="big" id="invite" type="button" data-testid="invite">UNDANG TEMAN</button>
+						<button class="big ghost" id="lobby-back" type="button">KEMBALI</button>
+					</div>
+					<p class="fine">Atau lewat Lobby Plupin: tekan <b>Undang</b>, lalu <b>Mulai</b>, dan semua temanmu otomatis masuk ke ruangan ini. <a class="link" id="open-lobby" target="_blank" rel="noopener">Buka Lobby Plupin</a></p>
+				</div>
+			</section>
 
+			<section class="screen modal" id="help" hidden>
+				<div class="panel">
+					<h2>Cara main</h2>
+					<ol class="steps">
+						<li><i class="ic nasi"></i><span>Ketuk <b>bakul</b> atau <b>cobek</b> untuk menaruh bahan di piring.</span></li>
+						<li><i class="ic tempe"></i><span>Ketuk <b>wajan</b> untuk goreng tempe. Tunggu <b>ting!</b>, ketuk lagi untuk mengambilnya.</span></li>
+						<li><i class="ic plate"></i><span>Cocokkan isi piring dengan <b>pesanan</b> di atas kepala pelanggan, lalu ketuk dia.</span></li>
+						<li><i class="ic star"></i><span>Cepat dapat tip. Pesanan <b>spesial</b> bayar lebih. Kumpulkan 60, 110, 160 koin untuk bintang.</span></li>
+					</ol>
+					<div class="buttons"><button class="big primary" id="close-help" type="button">SIAP</button></div>
+				</div>
+			</section>
+
+			<section class="screen" id="over" data-testid="over" hidden>
+				<div class="panel">
+					<h2>Shift selesai</h2>
+					<div class="stars" id="stars-row" data-testid="stars" aria-live="polite"><i></i><i></i><i></i></div>
+					<p class="big-number"><span id="final-coins">0</span><small>koin</small></p>
+					<p class="sub" data-testid="summary" id="summary"></p>
+					<ol class="board" data-testid="board" id="board"></ol>
+					<div class="buttons">
+						<button class="big primary" id="again" type="button" data-testid="again">MAIN LAGI</button>
+						<button class="big gold" id="buy" type="button" data-testid="buy" hidden>CELEMEK EMAS · Σ20</button>
+						<button class="big ghost" id="to-title" type="button">MENU</button>
+					</div>
+				</div>
+			</section>
+		</div>
 		<script type="module" src="/src/main.ts"></script>
 	</body>
 </html>

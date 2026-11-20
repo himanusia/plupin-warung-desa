@@ -25,11 +25,13 @@ export interface Pose {
 	n: number
 	/** The name to print under the character. */
 	name: string
+	color: string
 }
 
 export interface Remote {
 	seat: Seat
 	name: string
+	color: string
 	x: number
 	emote: string | null
 	n: number
@@ -47,16 +49,18 @@ export class Net {
 	onRemoteEmote: (seat: Seat, emote: string) => void = () => {}
 	onLeave: (seat: Seat) => void = () => {}
 
-	constructor(gameId: string, name: string) {
-		this.room = new Room({ gameId, name, authority: "host" })
+	constructor(gameId: string, name: string, party?: string) {
+		// A party code (`?p=` on a link from the Plupin lobby) seats this player in the room the party opened.
+		this.room = new Room({ gameId, name, authority: "host", ...(party ? { party } : {}) })
 		this.peers = new Peers<Pose>({
-			blend: (a, b, t) => ({ x: a.x + (b.x - a.x) * t, e: b.e, n: b.n, name: b.name }),
-			create: (seat) => void this.remotes.set(seat, { seat, name: seat.slice(-4), x: 195, emote: null, n: 0 }),
+			blend: (a, b, t) => ({ x: a.x + (b.x - a.x) * t, e: b.e, n: b.n, name: b.name, color: b.color }),
+			create: (seat) => void this.remotes.set(seat, { seat, name: seat.slice(-4), color: "#3d7bff", x: 0, emote: null, n: 0 }),
 			update: (seat, pose) => {
 				const remote = this.remotes.get(seat)
 				if (!remote) return
 				remote.x = pose.x
 				remote.name = pose.name
+				remote.color = pose.color
 				if (pose.e && pose.n !== remote.n) this.onRemoteEmote(seat, pose.e)
 				remote.emote = pose.e
 				remote.n = pose.n
@@ -92,6 +96,10 @@ export class Net {
 		}
 	}
 
+	/** The elected host's seat, once the room has said who it is. */
+	get hostSeat(): Seat | null {
+		return this.leader
+	}
 	get joined(): boolean {
 		return this.room.state === "joined"
 	}
