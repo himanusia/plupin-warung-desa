@@ -21,5 +21,29 @@
       "price": 20,
       "kind": "permanent"
     }
-  ]
+  ],
+  "catalog": {
+    "genre": "party",
+    "mode": "coop",
+    "ageRating": "SU",
+    "summary": "Masak dan layani warung desa bareng teman: bantu aduk wajan, oper piring, kejar bintang.",
+    "description": "Warung desa 3D untuk 1 sampai 4 pemain. Ambil nasi, kerupuk, dan sambal, goreng tempe di wajan, susun piring sesuai pesanan, lalu layani pelanggan. Main bareng itu menguntungkan: teman bisa membantu mengaduk wajan supaya tempe matang lebih cepat, mengoper piring, dan melayani pesanan pesta yang butuh dua koki. Pakai akun Plupin kamu, karakter dan emotmu ikut masuk.",
+    "minPlayers": 1,
+    "controls": [
+      "touch",
+      "mouse"
+    ],
+    "orientation": "any",
+    "languages": [
+      "id"
+    ],
+    "cover": "art/cover.webp",
+    "banner": "art/banner.webp",
+    "tags": [
+      "masak",
+      "coop",
+      "3d",
+      "warung"
+    ]
+  }
 }
