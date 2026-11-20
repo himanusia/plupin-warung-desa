@@ -5,7 +5,8 @@
     "": {
       "name": "plupin-warung-desa",
       "dependencies": {
-        "@plupin/game-sdk": "^0.2.0",
+        "@plupin/character": "^0.2.0",
+        "@plupin/game-sdk": "^0.3.0",
         "three": "^0.185.0",
       },
       "devDependencies": {
@@ -72,7 +73,9 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
 
-    "@plupin/game-sdk": ["@plupin/game-sdk@0.2.0", "", {}, "sha512-NIZJ5wHG/K38H+eqgr6IJIONNwNRft9P75qCw9BpIQlIK+QTiaVkY4TSJtOzwckUHnqMzl9S0/YdXrgGmNVUng=="],
+    "@plupin/character": ["@plupin/character@0.2.0", "", { "dependencies": { "fflate": "^0.8.3" }, "peerDependencies": { "three": ">=0.160.0" }, "optionalPeers": ["three"] }, "sha512-v1bCfYAnILijJD5sRvgddocwCJWzIvPyLJ8RjUxfE8kKXbOZBdzCYpYwW9lqJcodUzSlDPG141Qs3OTMQ0Ve+g=="],
+
+    "@plupin/game-sdk": ["@plupin/game-sdk@0.3.0", "", {}, "sha512-cvBk+2afPNfeT/giL7jb2Ac1O/9zBevc46KXv/7sFLgdxm1LgAetHGzCdZUdOvEcQe5FBgWmPQYsqYWsfwsdkQ=="],
 
     "@rollup/rollup-android-arm-eabi": ["@rollup/rollup-android-arm-eabi@4.68.7", "", { "os": "android", "cpu": "arm" }, "sha512-ZL7MgOeMUiBum1bjzzyBotE3DuHVz+UUxcDVlLL7gpdhDM4RpjG4bZOIly7ensIcXw9jhWl7HTIIQ9KsgjykGQ=="],
 

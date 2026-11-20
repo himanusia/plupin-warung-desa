@@ -1,43 +1,34 @@
 <!doctype html><html lang="id"><meta charset="utf-8"><title>Warung Desa: dokumentasi</title>
 <style>body{font:13px/1.55 -apple-system,Helvetica,Arial,sans-serif;max-width:800px;margin:24px auto;color:#1a1233}h1{font-size:28px;margin:0 0 4px}h2{font-size:17px;margin:26px 0 8px;border-bottom:2px solid #b9a6ff;padding-bottom:3px}h3{font-size:14px;margin:16px 0 6px}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{border:1px solid #c9bff5;padding:5px 8px;vertical-align:top;font-size:12px}th{background:#efeaff;text-align:left}code{background:#f1edff;padding:1px 5px;border-radius:4px;font-size:12px}img{width:100%;border:2px solid #1a1233;border-radius:10px;margin:6px 0}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.note{background:#fff6dd;border:2px solid #f0c040;border-radius:10px;padding:8px 12px;margin:10px 0}small{color:#555}</style>
 <h1>Warung Desa</h1>
-<p><b>Game official Plupin pertama, dan contoh pemakaian tiap fitur SDK.</b><br>
-Main: <b>https://warung-desa.plupin.com</b> · Repo: <b>github.com/himanusia/plupin-warung-desa</b> (submodule <code>example/warung-desa</code> di repo plupin) · Dipublikasikan dari akun <b>Plupin</b> (centang emas) lewat <code>plupin up</code>.</p>
-
+<p><b>Game official Plupin, dan contoh pemakaian tiap fitur SDK.</b><br>Main: <b>https://warung-desa.plupin.com</b> · Repo: <b>github.com/himanusia/plupin-warung-desa</b> (submodule <code>example/warung-desa</code>) · Dipublikasikan dari akun <b>Plupin</b> lewat <code>plupin up</code>.</p>
 <h2>1. Gamenya</h2>
-<p>Warung desa 3D untuk 1–4 pemain. Pelanggan datang dengan pesanan di atas kepalanya. Ambil nasi dan sambal, goreng tempe di wajan (3 detik, tunggu <b>ting!</b>), susun piring sesuai pesanan, lalu ketuk pelanggannya. Piring benar dibayar, cepat dapat tip, <b>pesanan spesial hari ini</b> dibayar +50%, piring salah dibuang, dan pelanggan yang menunggu terlalu lama ngambek lalu pergi. Satu shift 90 detik; 60, 110, dan 160 koin = 1, 2, 3 bintang.</p>
-<div class="two"><img src="screens/1-judul-desktop.jpg"><img src="screens/4-sajian-desktop.jpg"></div>
-<p><small>Kiri: layar judul (desktop). Kanan: momen sajian, pelanggan senang dengan bintang dan konfeti, koki beremot, banner spesial.</small></p>
+<p>Warung desa 3D untuk 1–4 pemain. Pelanggan datang dengan pesanan di atas kepalanya. Ambil nasi, kerupuk, sambal, goreng tempe di wajan, susun piring (maks 3 bahan), lalu ketuk pelanggannya. Piring benar dibayar, cepat dapat tip, pesanan spesial +50%, piring salah dibuang. Satu shift 90 detik, 30 detik terakhir adalah <b>jam sibuk</b>.</p>
+<div class="two"><img src="screens/4-main-piring-petunjuk.jpg"><img src="screens/6-main-hp.jpg"></div>
+<p><small>Kiri: desktop dengan baki "Piringmu", petunjuk langkah, dan bahan yang sudah dimiliki menyala di gelembung pesanan. Kanan: HP.</small></p>
 
-<h3>Kontrol</h3>
-<p>Ketuk atau klik bakul nasi, cobek sambal, atau wajan: Plup lo melompat ke sana dan memakainya. Ketuk pelanggan untuk melayani. Suara menyala di ketukan pertama; tombol di pojok kanan atas mematikannya. Layout menyesuaikan layar: desktop lebar, dan di HP stasiun serta pelanggan dirapatkan supaya adegan memenuhi layar.</p>
+<h2>2. Akun Plupin (default)</h2>
+<p>Game memakai akun Plupin pemain lewat <code>getPlayer()</code>: nama, lencana, bentuk badan, warna, skin yang digambar di platform, dan emot yang dimiliki. Skin berlaku di seluruh platform, bukan per game. Belum masuk: game menampilkan layar "Masuk dulu ke Plupin" (tombol memanggil <code>connectPlayer()</code>, jendela platform meminta masuk/daftar). Hanya jika platform tidak bisa dihubungi (<code>failed</code>) game berjalan sebagai tamu. Penampilan pemain lain dikirim lewat frame <code>look</code> di room, jadi semua melihat skin yang sama.</p>
+<div class="two"><img src="screens/1-masuk-plupin.jpg"><img src="screens/2-judul-akun.jpg"></div>
 
-<h2>2. Party: cara undang pelanggan/teman lo</h2>
-<ol>
-<li><b>Dari dalam game:</b> tekan <b>AJAK TEMAN</b> di layar judul. Ruang tunggu menampilkan siapa saja yang ada (maks 4), hanya <b>host</b> yang bisa menekan <b>MULAI</b>, tamu melihat "MENUNGGU HOST…". Tombol <b>UNDANG TEMAN</b> membuka share sheet (atau menyalin link game).</li>
-<li><b>Dari Lobby Plupin (party platform):</b> buka plupin.com/lobby, tekan <b>Undang</b> (pilih teman atau salin link), lalu <b>Mulai</b>. Semua anggota party dibawa ke game dengan kode party (<code>?p=kode</code>) yang otomatis mendudukkan mereka di room yang sama (<code>new Room({ party })</code>). Game tidak bisa membuat kode party; lobby platform yang membuatnya, jadi game hanya membaca kodenya.</li>
-<li><b>Link biasa:</b> kirim link game; siapa pun yang membukanya dan memilih Ajak Teman masuk ke ruangan yang sama.</li>
-</ol>
-<div class="two"><img src="screens/2-ruang-tunggu-desktop.jpg"><img src="screens/2-ruang-tunggu-hp.jpg"></div>
-<p><small>Ruang tunggu di desktop (host) dan di HP (tamu), diambil dari produksi.</small></p>
-<div class="two"><img src="screens/5-hitung-mundur.jpg"><img src="screens/7-dua-pemain-desktop.jpg"></div>
-<p><small>Hitung mundur 3-2-1-GO setelah host menekan Mulai, lalu dua pemain di satu warung (yang satu dari HP). Game tidak jalan sebelum host menekan Mulai.</small></p>
+<h2>3. Mabar yang benar-benar menguntungkan</h2>
+<table><tr><th>Mekanik</th><th>Efek</th></tr>
+<tr><td>Bantu aduk</td><td>Ketuk wajan yang sedang digoreng teman: tempe matang 1,5 detik lebih cepat (sekali per tempe).</td></tr>
+<tr><td>Oper piring</td><td>Ketuk koki lain: isi piringmu pindah ke piringnya, sehingga satu koki bisa fokus nasi, yang lain tempe.</td></tr>
+<tr><td>Pesanan pesta</td><td>Hanya muncul dengan 2+ koki: dua piring dari dua koki berbeda dalam 8 detik, bayaran ±34–36 koin.</td></tr>
+<tr><td>Kombo tim</td><td>Layanan beruntun dalam 6 detik menaikkan bayaran hingga +50% untuk siapa pun yang melayani.</td></tr>
+<tr><td>Skala tim</td><td>Tiap koki tambahan menambah pelanggan dan menaikkan target bintang (satu koki 60/110/160).</td></tr></table>
+<div class="two"><img src="screens/5-mabar-bantu-aduk.jpg"><img src="screens/3-ruang-tunggu-teman.jpg"></div>
+<p><small>Kiri: "dibantu aduk!" saat teman membantu wajan, dengan bar target tim. Kanan: ruang tunggu dengan tombol <b>+ TEMAN</b> per pemain Plupin (membuka <code>/friends?add=username</code>). Undang: tombol UNDANG TEMAN, atau Lobby Plupin (kode <code>?p=</code>).</small></p>
 
-<h2>3. Karakter dan emot</h2>
-<p>Semua pemain dan pelanggan adalah <b>Plup</b>, mascot yang sama dengan lobby (<code>createPlup</code> dari <code>@plupin/character/three</code>): badan bulat toon dengan outline tinta dan neon, tangan dan kaki karet, wajah dari stamp bernama. Roblox tidak dipakai di mana pun. Emot berupa data (nama, wajah, glyph, klip): yang gratis dari <code>EMOTES</code>, ditambah <b>Sorak</b> (emot animasi official yang dijual di shop) yang dimainkan dari keyframe yang sama, dan klip jalan <b>WADDLE</b> yang ditulis game sendiri. Pelanggan berganti wajah (tenang, cemas, marah) menurut kesabarannya dan memakai aksesori berbeda.</p>
-
-<h2>4. Grafik, animasi, audio</h2>
-<table><tr><th>Apa</th><th>Bagaimana</th></tr>
-<tr><td>Dunia 3D</td><td>three.js, shading toon berpita dan outline tinta yang sama dengan Plup: warung bambu, kanopi bergaris, lampu gantung, jendela ke sawah dan palma, bakul nasi berkukus, wajan dengan api, cobek sambal.</td></tr>
-<tr><td>Juice</td><td>squash-and-stretch di semua lompatan dan ambilan, bahan terbang melengkung ke piring, partikel (uap, percik, asap wajan, konfeti), getar kamera, hit-stop saat melayani, angka melayang, koin terbang ke penghitung, bintang muncul satu per satu, timer berdenyut di 10 detik terakhir.</td></tr>
-<tr><td>UI</td><td>HUD cincin timer dan koin, gelembung pesanan yang menempel di kepala pelanggan dengan meter kesabaran, layar judul dengan huruf melompat dan pilihan nama dan warna Plup, ruang tunggu, tutorial, hitung mundur, layar hasil.</td></tr>
-<tr><td>Audio</td><td>Semua disintesis di browser (Web Audio), tanpa berkas audio: musik marimba pentatonik dengan bass dan shaker yang mempercepat di 15 detik terakhir, plus efek (ambil bahan, desis wajan, ting, koin, sajian, salah, pergi, hitung mundur, bintang, fanfare). Tombol bisukan diingat.</td></tr></table>
-<div class="two"><img src="screens/6-main-hp.jpg"><img src="screens/8-hasil.jpg"></div>
-<p><small>Kiri: tampilan HP. Kanan: layar hasil dari satu shift nyata di produksi (116 koin, 7 pelanggan, 2 bintang).</small></p>
+<h2>4. Pengaturan, tutorial, audio</h2>
+<p>Tombol ⚙: volume musik, volume efek, kualitas grafik (rendah/sedang/tinggi), guncangan layar, petunjuk langkah, ulangi cara main. Kartu cara main muncul sebelum shift pertama; garis petunjuk dan penanda berdenyut di dunia selalu menunjuk langkah berikutnya. Musik pelan menyala di judul dan ruang tunggu begitu ada ketukan/tombol pertama (browser tidak mengizinkan sebelumnya; ada tombol "Ketuk untuk menyalakan musik"), lalu pindah ke versi penuh saat shift dan makin cepat di jam sibuk.</p>
+<div class="two"><img src="screens/7-pengaturan.jpg"><img src="screens/8-cara-main.jpg"></div>
+<p>Animasi: koki menghadap kamera dan stasiun, tangan menjangkau saat mengambil bahan, mengaduk wajan, berbalik ke pelanggan saat menyerahkan piring yang terbang ke meja; baki piring dan ikon bahan di atas kepala koki lain terlihat.</p>
 
 <h2>5. Fitur SDK yang diperlihatkan</h2>
 <table><tr><th>File</th><th>Fitur</th></tr>
-<tr><td><code>src/game.ts</code></td><td>aturan murni (waktu masuk sebagai parameter, acak dari seed, ruang tunggu sebelum shift); 9 tes</td></tr>
+<tr><td><code>src/game.ts</code></td><td>aturan murni (aduk, oper, pesta, kombo, jam sibuk); 17 tes</td></tr>
 <tr><td><code>src/actors.ts</code>, <code>emotes.ts</code></td><td><code>createPlup</code>, emot, klip kustom</td></tr>
 <tr><td><code>src/scene.ts</code>, <code>toon.ts</code>, <code>fx.ts</code>, <code>audio.ts</code></td><td>dunia toon responsif, juice, audio sintetis</td></tr>
 <tr><td><code>src/net.ts</code></td><td><code>Room</code>, <code>Peers</code>, event <code>host</code>, kode party; satu kursi terpilih menjalankan aturan, lainnya mengirim ketukan (<code>authority: "host"</code>)</td></tr>
@@ -54,13 +45,13 @@ Main: <b>https://warung-desa.plupin.com</b> · Repo: <b>github.com/himanusia/plu
 <li><b>Papan peringkat hanya membaca.</b> Skor hanya bisa ditulis room yang menyelesaikan match dengan aturan milik platform (dokumen giliran), jadi game dengan aturan sendiri tidak bisa menulis dan klien tidak bisa memalsukannya. Papan <code>koin</code> sudah dideklarasikan dan dibaca, tapi kosong sampai ada mode yang diwasiti.</li>
 <li><b>Audio belum didengar manusia oleh gw.</b> Gw hanya bisa memastikan tidak ada galat saat konteks audio dibuka; kualitas musik dan efek perlu telinga lo.</li>
 <li><b>Pengujian visual</b> memakai Chrome headless (rendering perangkat lunak). Performa di HP asli belum diukur.</li>
-<li><b><code>@plupin/character</code> dan SDK terbaru belum ada di npm</b>; game me-resolve keduanya dari checkout platform (<code>example/</code>) sampai rilis berikutnya.</li>
+<li>Paket <code>@plupin/character</code> 0.2.0, <code>@plupin/game-sdk</code> 0.3.0 dan <code>@plupin/cli</code> 0.3.0 sudah di npm dan dipakai game langsung.</li>
 <li>Kontrol baru sentuh dan klik; keyboard dan gamepad belum.</li>
 <li>Bentuk 3D selain Plup didukung di API (<code>createPlup({ model })</code>), tapi belum ada jenis listing "model" untuk dijual creator.</li></ul></div>
 
 <h2>8. Menjalankan dan memublikasikan</h2>
 <pre style="background:#f1edff;padding:10px;border-radius:8px;font-size:12px">bun install
-bun test src            # aturan (9 tes)
+bun test src            # aturan dan petunjuk (23 tes)
 bun run typecheck
 bun run build           # mencetak ukuran bundel
 bun run dev             # tambah ?round=20 untuk shift latihan pendek

@@ -15,13 +15,20 @@ export function icon(item: Item): string {
 		return `<svg class="item" viewBox="0 0 40 40"><ellipse cx="20" cy="30" rx="15" ry="5" fill="#cfc3a2" stroke="${ink}" stroke-width="2.5"/><path d="M6 30 Q8 10 20 9 Q32 10 34 30 Z" fill="#fffaf0" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/><g fill="#d9cdb0"><circle cx="15" cy="20" r="1.4"/><circle cx="22" cy="16" r="1.4"/><circle cx="26" cy="24" r="1.4"/><circle cx="18" cy="26" r="1.4"/></g></svg>`
 	if (item === "tempe")
 		return `<svg class="item" viewBox="0 0 40 40"><rect x="4" y="12" width="32" height="18" rx="5" fill="#e2a03a" stroke="${ink}" stroke-width="2.5"/><g fill="#a6651c"><circle cx="12" cy="18" r="1.8"/><circle cx="20" cy="17" r="1.8"/><circle cx="28" cy="19" r="1.8"/><circle cx="15" cy="25" r="1.8"/><circle cx="24" cy="25" r="1.8"/></g></svg>`
+	if (item === "kerupuk")
+		return `<svg class="item" viewBox="0 0 40 40"><ellipse cx="14" cy="26" rx="11" ry="9" fill="#f9e3a8" stroke="${ink}" stroke-width="2.5"/><ellipse cx="25" cy="21" rx="11" ry="9" fill="#f2c35a" stroke="${ink}" stroke-width="2.5"/><g fill="#d9a53a"><circle cx="22" cy="19" r="1.4"/><circle cx="28" cy="23" r="1.4"/><circle cx="25" cy="16" r="1.2"/></g></svg>`
 	return `<svg class="item" viewBox="0 0 40 40"><ellipse cx="20" cy="30" rx="16" ry="6" fill="#3fae74" stroke="${ink}" stroke-width="2.5"/><path d="M8 29 Q10 11 21 11 Q31 12 33 29 Z" fill="#d8301f" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/><ellipse cx="17" cy="19" rx="3" ry="2" fill="#ff8a76"/></svg>`
 }
 
 export interface BubbleSpec {
 	id: number
 	name: string
-	items: readonly Item[]
+	/** One list of items per plate: a pesta order has two. */
+	parts: readonly (readonly Item[])[]
+	/** Which parts are already served. */
+	got: readonly number[]
+	/** What my plate holds, so the items I already have light up. */
+	have: readonly Item[]
 	patience: number
 	special: boolean
 	/** Pixel position of the point above the customer's head. */
@@ -43,11 +50,18 @@ export class Bubbles {
 			if (!node) {
 				node = document.createElement("div")
 				node.className = "bubble pop"
-				node.innerHTML = `${spec.special ? '<span class="tag">★ SPESIAL</span>' : ""}<div class="name">${spec.name}</div><div class="items">${spec.items.map(icon).join("")}</div><div class="meter"><i></i></div>`
+				node.innerHTML = `${spec.special ? '<span class="tag">★ SPESIAL</span>' : ""}${spec.parts.length > 1 ? '<span class="tag team">2 PIRING · 2 KOKI</span>' : ""}<div class="name">${spec.name}</div><div class="parts">${spec.parts.map((items, part) => `<div class="items" data-part="${part}">${items.map((item) => `<span class="slot" data-item="${item}">${icon(item)}</span>`).join("")}</div>`).join("")}</div><div class="meter"><i></i></div>`
 				if (spec.special) node.classList.add("special")
 				this.root.append(node)
 				this.live.set(spec.id, node)
 			}
+			// Light up what is already on my plate for the first plate still to make; tick plates already served.
+			const open = spec.parts.findIndex((_, part) => !spec.got.includes(part))
+			node.querySelectorAll<HTMLElement>(".items").forEach((row) => {
+				const part = Number(row.dataset.part)
+				row.classList.toggle("done", spec.got.includes(part))
+				row.querySelectorAll<HTMLElement>(".slot").forEach((slot) => slot.classList.toggle("have", part === open && spec.have.includes(slot.dataset.item as Item)))
+			})
 			const meter = node.querySelector<HTMLElement>(".meter i")
 			if (meter) meter.style.transform = `scaleX(${Math.max(0, spec.patience)})`
 			node.classList.toggle("warn", spec.patience < 0.5 && spec.patience >= 0.22)
@@ -147,3 +161,6 @@ export function logo() {
 		}),
 	)
 }
+
+/** Small plate icons for a name tag or the plate tray. */
+export const miniPlate = (items: readonly Item[]) => items.map((item) => `<span class="mini">${icon(item)}</span>`).join("")

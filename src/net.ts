@@ -1,4 +1,5 @@
 import { Peers, Room } from "@plupin/game-sdk"
+import type { PlupSkin } from "@plupin/character/three"
 import type { GameEvent, Seat, State, Target } from "./game"
 
 /**
@@ -8,6 +9,7 @@ import type { GameEvent, Seat, State, Target } from "./game"
  * player or the economy depends on, like a leaderboard score, needs "server": see the README.)
  *
  * Frames on the wire, all small:
+ *   look    every seat, on joining and every 4 s   { name, username, color, shape, skin, badge }   who I am, drawn the same for everyone
  *   pose    every seat, 12 Hz     { x, e, n }       where I stand, the emote I play, its counter
  *   tap     any seat -> the host  { target }        an intent, never a result
  *   world   the host, 6 Hz        { state }         the whole shared state
@@ -28,10 +30,27 @@ export interface Pose {
 	color: string
 }
 
+/** Who a seat is: sent rarely, because a drawn skin is a kilobyte. */
+export interface Look {
+	name: string
+	username: string | null
+	badge: "official" | "verified" | null
+	color: string
+	shape: string
+	skin: PlupSkin | undefined
+	emotes: string[]
+}
+
 export interface Remote {
 	seat: Seat
 	name: string
+	username: string | null
+	badge: "official" | "verified" | null
 	color: string
+	shape: string
+	skin: PlupSkin | undefined
+	/** Bumps when a new look arrives, so the stall redraws that cook. */
+	looks: number
 	x: number
 	emote: string | null
 	n: number
@@ -48,19 +67,23 @@ export class Net {
 	onHost: (host: boolean) => void = () => {}
 	onRemoteEmote: (seat: Seat, emote: string) => void = () => {}
 	onLeave: (seat: Seat) => void = () => {}
+	onLook: (seat: Seat) => void = () => {}
+	onHello: () => void = () => {}
 
 	constructor(gameId: string, name: string, party?: string) {
 		// A party code (`?p=` on a link from the Plupin lobby) seats this player in the room the party opened.
 		this.room = new Room({ gameId, name, authority: "host", ...(party ? { party } : {}) })
 		this.peers = new Peers<Pose>({
 			blend: (a, b, t) => ({ x: a.x + (b.x - a.x) * t, e: b.e, n: b.n, name: b.name, color: b.color }),
-			create: (seat) => void this.remotes.set(seat, { seat, name: seat.slice(-4), color: "#3d7bff", x: 0, emote: null, n: 0 }),
+			create: (seat) => {
+				this.remotes.set(seat, { seat, name: seat.slice(-4), username: null, badge: null, color: "#3d7bff", shape: "plup", skin: undefined, looks: 0, x: 0, emote: null, n: 0 })
+				// A new face at the stall: say who I am so they can draw me.
+				this.onHello()
+			},
 			update: (seat, pose) => {
 				const remote = this.remotes.get(seat)
 				if (!remote) return
 				remote.x = pose.x
-				remote.name = pose.name
-				remote.color = pose.color
 				if (pose.e && pose.n !== remote.n) this.onRemoteEmote(seat, pose.e)
 				remote.emote = pose.e
 				remote.n = pose.n
@@ -74,6 +97,7 @@ export class Net {
 			if (frame.from === this.room.seatId) return
 			const data = frame.data as Record<string, unknown>
 			if (frame.kind === "pose") this.peers.push(frame.from, performance.now(), data as unknown as Pose)
+			else if (frame.kind === "look") this.takeLook(frame.from, data as unknown as Look)
 			else if (frame.kind === "tap" && this.isHost) this.onTap(frame.from, data.target as Target)
 			else if (frame.kind === "world") this.onWorld(data.state as State)
 			else if (frame.kind === "events") this.onEvents(data.events as GameEvent[])
@@ -83,6 +107,20 @@ export class Net {
 			this.leader = seat
 			this.onHost(this.isHost)
 		})
+	}
+
+	private takeLook(seat: Seat, look: Look) {
+		const remote = this.remotes.get(seat)
+		if (!remote) return
+		const changed = remote.name !== look.name || remote.color !== look.color || remote.shape !== look.shape || JSON.stringify(remote.skin) !== JSON.stringify(look.skin)
+		remote.name = String(look.name).slice(0, 24)
+		remote.username = typeof look.username === "string" ? look.username.slice(0, 32) : null
+		remote.badge = look.badge === "official" || look.badge === "verified" ? look.badge : null
+		remote.color = /^#[0-9a-f]{6}$/i.test(look.color) ? look.color : "#3d7bff"
+		remote.shape = String(look.shape)
+		remote.skin = look.skin
+		if (changed) remote.looks += 1
+		this.onLook(seat)
 	}
 
 	/** Never throws: a page with no room (a static server, say) plays solo. */
@@ -116,6 +154,9 @@ export class Net {
 
 	sample(now: number) {
 		this.peers.sample(now)
+	}
+	sendLook(look: Look) {
+		if (this.joined) this.room.broadcast("look", look)
 	}
 	sendPose(pose: Pose) {
 		if (this.joined) this.room.broadcast("pose", pose)

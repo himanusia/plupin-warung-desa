@@ -1,11 +1,12 @@
-import { createPlup, type PlupHandle } from "@plupin/character/three"
-import type { NamedFace } from "@plupin/character"
+import { createPlup, type PlupHandle, type PlupSkin } from "@plupin/character/three"
+import type { CustomClip, NamedFace } from "@plupin/character"
 import {
 	BoxGeometry,
 	ConeGeometry,
 	CylinderGeometry,
 	Group,
 	Mesh,
+	MeshBasicMaterial,
 	SphereGeometry,
 	TorusGeometry,
 	Vector3,
@@ -13,11 +14,33 @@ import {
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js"
 import { emote as findEmote, lengthOf, WADDLE } from "./emotes"
 import { ease, tween } from "./fx"
-import type { Item } from "./game"
-import { COLUMN_X, COOK_Z, CUSTOMER_Z, PLATE_Z } from "./scene"
+import type { Item, Target } from "./game"
+import { COLUMN_X, COOK_Y, COOK_Z, CUSTOMER_Z, PLATE_Z } from "./scene"
 import { outlined, toon } from "./toon"
 
-const PLUP_SCALE = 1.3
+const PLUP_SCALE = 1.55
+
+/** Arm clips, written as keyframes the way a creator would ship an animated emote. */
+const BONES = ["armL", "armR", "legL", "legR", "torso"] as CustomClip["bones"]
+function clip(frames: number, fps: number, at: (t: number) => { l?: [number, number, number]; r?: [number, number, number]; lean?: number; lift?: number }): CustomClip {
+	return {
+		fps,
+		loop: false,
+		bones: BONES,
+		frames: Array.from({ length: frames }, (_, index) => {
+			const t = index / (frames - 1)
+			const { l = [0, 0, 0], r = [0, 0, 0], lean = 0, lift = 0 } = at(t)
+			return [...l, ...r, 0, 0, 0, 0, 0, 0, lean, 0, 0, lift].map((value) => Math.round(value * 1000) / 1000)
+		}),
+	}
+}
+const swell = (t: number) => Math.sin(t * Math.PI)
+/** Reach out with the right arm, grab, bring it back. */
+export const GRAB = clip(12, 24, (t) => ({ r: [-1.5 * swell(t), 0, -0.2 * swell(t)], l: [0.2 * swell(t), 0, 0.1], lean: 0.3 * swell(t), lift: 0.14 * swell(t) }))
+/** Both arms forward over the wok, circling. */
+export const STIR = clip(20, 24, (t) => ({ r: [-1.2 + Math.sin(t * Math.PI * 4) * 0.25, 0, Math.cos(t * Math.PI * 4) * 0.35], l: [-0.5, 0, 0.2], lean: 0.25, lift: 0.04 * Math.abs(Math.sin(t * Math.PI * 4)) }))
+/** Hand a plate over: both arms out, a little hop. */
+export const HAND = clip(16, 24, (t) => ({ r: [-1.6 * swell(t), 0, -0.15], l: [-1.6 * swell(t), 0, 0.15], lean: 0.2 * swell(t), lift: 0.22 * swell(t) }))
 
 export const PALETTE = ["#3d7bff", "#ff8a4c", "#4cc98a", "#c39bff", "#ffd24d", "#ff6f91"]
 
@@ -45,6 +68,13 @@ export function food(item: Item, fried = true): Group {
 			bean.position.set(-0.14 + (i % 3) * 0.14, 0.1, i < 3 ? -0.06 : 0.06)
 			group.add(bean)
 		}
+	} else if (item === "kerupuk") {
+		for (let i = 0; i < 3; i += 1) {
+			const disc = outlined(new Mesh(new CylinderGeometry(0.2, 0.2, 0.025, 14), toon(i === 1 ? "#f2c35a" : "#f9e3a8")), 0.01)
+			disc.position.set((i - 1) * 0.1, 0.03 + i * 0.045, (i % 2 - 0.5) * 0.06)
+			disc.rotation.set(0.12 * (i - 1), i, 0.1)
+			group.add(disc)
+		}
 	} else {
 		const leaf = outlined(new Mesh(new CylinderGeometry(0.22, 0.22, 0.02, 12), toon("#3fae74")), 0.012)
 		leaf.scale.set(1, 1, 0.7)
@@ -62,7 +92,7 @@ export function food(item: Item, fried = true): Group {
 export class Plate {
 	readonly group = new Group()
 	private readonly shown: Group[] = []
-	private items: Item[] = []
+	items: Item[] = []
 
 	constructor() {
 		const dish = outlined(new Mesh(new CylinderGeometry(0.5, 0.42, 0.06, 24), toon("#ffffff")), 0.02)
@@ -90,7 +120,7 @@ export class Plate {
 
 	private place(item: Item, index: number, pop: boolean) {
 		const piece = food(item)
-		const slots: [number, number][] = [[-0.2, 0.08], [0.2, 0.08], [0, -0.2]]
+		const slots: [number, number][] = [[-0.22, 0.1], [0.22, 0.1], [0, -0.22]]
 		const [x, z] = slots[index] ?? [0, 0]
 		piece.position.set(x, 0.06, z)
 		piece.scale.setScalar(0.95)
@@ -155,37 +185,78 @@ function hatFor(kind: Hat): Group | null {
 
 // ---- cooks ----
 
+export interface CookLook {
+	color: string
+	shape: string
+	skin: PlupSkin | undefined
+}
+
 export class Cook {
 	readonly group = new Group()
-	readonly plup: PlupHandle
+	plup: PlupHandle
 	readonly plate = new Plate()
 	x: number
 	target: number
 	private phase = 0
 	private emoteLeft = 0
+	private actLeft = 0
 	private landed = 0
 	private apronMesh: Group | null = null
+	private yaw = 0
+	/** Where this cook faces: 0 towards the camera and the stalls, PI towards the customers. */
+	private turn = 0
+	private turnUntil = 0
+	private clock = 0
+	/** How far the cook is off the duckboard: hops while walking. */
+	private hop = 0
 	readonly local: boolean
+	private readonly hit: Mesh
+	/** The look this cook is drawn with: when it changes, the body is rebuilt. */
+	private key = ""
 
 	constructor(
 		readonly seat: string,
 		public name: string,
-		color: string,
+		look: CookLook,
 		x: number,
 		local: boolean,
 	) {
 		this.local = local
-		this.plup = createPlup({ color, face: "smug" })
-		this.plup.object.scale.setScalar(PLUP_SCALE)
+		this.plup = this.build(look)
 		this.group.add(this.plup.object)
 		this.x = x
 		this.target = x
-		this.group.position.set(x, 0, COOK_Z)
+		this.group.position.set(x, COOK_Y, COOK_Z)
 		this.plate.group.position.set(x, 0, 0)
+		// A cook can be tapped, to pass a plate to them.
+		this.hit = new Mesh(new BoxGeometry(1.5, 2.3, 1.4), new MeshBasicMaterial({ visible: false }))
+		this.hit.position.y = 1.2
+		this.hit.userData = { target: { cook: seat } satisfies Target }
+		this.group.add(this.hit)
 	}
 
-	setColor(color: string) {
-		this.plup.setColor(color)
+	private build(look: CookLook): PlupHandle {
+		this.key = JSON.stringify(look)
+		const plup = createPlup({ color: look.color, face: "smug", shape: look.shape as never, ...(look.skin ? { skin: look.skin } : {}) })
+		plup.object.scale.setScalar(PLUP_SCALE)
+		return plup
+	}
+
+	/** The thing a ray should hit to mean "this cook". */
+	get hitbox(): Mesh {
+		return this.hit
+	}
+
+	/** Same player, new look (they changed it on the platform): rebuild the body. */
+	setLook(look: CookLook) {
+		if (JSON.stringify(look) === this.key) return
+		const apron = this.apronMesh !== null
+		this.wearApron(false)
+		this.group.remove(this.plup.object)
+		this.plup.dispose()
+		this.plup = this.build(look)
+		this.group.add(this.plup.object)
+		if (apron) this.wearApron(true)
 	}
 
 	/** The gold apron: a rounded gold plate on the belly with a neck strap. */
@@ -213,12 +284,33 @@ export class Cook {
 		this.target = x
 	}
 
+	/** Turn to the customers for a moment (to hand a plate over), then back to the stalls. */
+	faceCustomers(seconds = 0.9) {
+		this.turn = Math.PI
+		this.turnUntil = this.clock + seconds
+	}
+
+	/** Face another cook, to pass a plate: just a short lean towards them. */
+	faceCook(towardsX: number, seconds = 0.6) {
+		this.turn = Math.sign(towardsX - this.x) * 0.9
+		this.turnUntil = this.clock + seconds
+	}
+
+	/** An arm clip for taking, stirring or handing over. */
+	act(kind: "grab" | "stir" | "hand") {
+		const clipOf = kind === "grab" ? GRAB : kind === "stir" ? STIR : HAND
+		this.plup.play(clipOf)
+		this.actLeft = lengthOf(clipOf) + 0.05
+		this.emoteLeft = 0
+	}
+
 	/** Plays an emote on the mascot; returns its glyph for the screen. */
 	emote(name: string): string | undefined {
 		const found = findEmote(name)
 		if (!found) return undefined
 		this.plup.emote(found.id, found)
 		this.emoteLeft = lengthOf(found.anim ?? found.clip) + 0.15
+		this.actLeft = 0
 		return found.glyph
 	}
 
@@ -239,25 +331,36 @@ export class Cook {
 		return Math.abs(this.x - this.target) > 0.03
 	}
 
+	/** Where the hands are, in the world: the plate flies from here. */
+	get hands(): Vector3 {
+		return new Vector3(this.x, 2.1, COOK_Z + 0.6)
+	}
+
 	update(dt: number) {
+		this.clock += dt
+		if (this.clock > this.turnUntil) this.turn = 0
 		const gap = this.target - this.x
+		let lean = 0
 		if (Math.abs(gap) > 0.03) {
 			const step = Math.sign(gap) * Math.min(Math.abs(gap), 6.2 * dt)
 			this.x += step
 			this.phase += dt * 15
-			this.group.position.y = Math.abs(Math.sin(this.phase)) * 0.28
-			this.group.rotation.y = Math.sign(gap) * 0.45
-			if (this.emoteLeft <= 0) this.plup.play(WADDLE)
+			this.hop = Math.abs(Math.sin(this.phase)) * 0.28
+			// Lean into the walk but keep the face to the camera.
+			lean = Math.sign(gap) * 0.4
+			if (this.emoteLeft <= 0 && this.actLeft <= 0) this.plup.play(WADDLE)
 			this.landed = 1
 		} else {
 			if (this.landed > 0) {
 				this.landed = 0
 				this.pop()
 			}
-			this.group.position.y *= Math.max(0, 1 - dt * 18)
-			this.group.rotation.y += (0 - this.group.rotation.y) * Math.min(1, dt * 14)
-			if (this.emoteLeft <= 0) this.plup.play("idle")
+			this.hop *= Math.max(0, 1 - dt * 18)
+			if (this.emoteLeft <= 0 && this.actLeft <= 0) this.plup.play("idle")
 		}
+		const want = this.turn + lean
+		this.yaw += (want - this.yaw) * Math.min(1, dt * 14)
+		this.group.rotation.y = this.yaw
 		if (this.emoteLeft > 0) {
 			this.emoteLeft -= dt
 			if (this.emoteLeft <= 0) {
@@ -265,7 +368,12 @@ export class Cook {
 				this.plup.play("idle")
 			}
 		}
+		if (this.actLeft > 0) {
+			this.actLeft -= dt
+			if (this.actLeft <= 0) this.plup.play("idle")
+		}
 		this.group.position.x = this.x
+		this.group.position.y = COOK_Y + this.hop
 		this.plate.group.position.set(this.x, 0.98, PLATE_Z)
 		this.plup.update(dt)
 	}

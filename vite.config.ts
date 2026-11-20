@@ -1,5 +1,4 @@
-import { existsSync, readFileSync } from "node:fs"
-import { resolve } from "node:path"
+import { readFileSync } from "node:fs"
 import { gzipSync } from "node:zlib"
 import { defineConfig, type PluginOption } from "vite"
 
@@ -7,27 +6,12 @@ import { defineConfig, type PluginOption } from "vite"
  * `base: "./"` so every asset is relative (the game is served under its own address), and
  * `plupin.json` is copied into the build output. The bundle size is printed because it is the one
  * number nobody asks a browser for until it is too late.
- *
- * `@plupin/character` is not on npm yet. Inside a platform checkout (this repo is pinned at
- * `example/warung-desa`) it resolves to `packages/character`; set PLUPIN_CHARACTER to point
- * somewhere else. Once the package is published the alias disappears and nothing else changes.
  */
-const source = (env: string, folder: string) =>
-	[process.env[env], resolve(`../../packages/${folder}`)]
-		.filter((path): path is string => !!path)
-		.find((path) => existsSync(resolve(path, "src/index.ts")))
-const characterSource = source("PLUPIN_CHARACTER", "character")
-const sdkSource = source("PLUPIN_GAME_SDK", "game-sdk")
-
 function emitManifest(): PluginOption {
 	return {
 		name: "emit-plupin-manifest",
 		generateBundle() {
-			this.emitFile({
-				type: "asset",
-				fileName: "plupin.json",
-				source: readFileSync("plupin.json", "utf8"),
-			})
+			this.emitFile({ type: "asset", fileName: "plupin.json", source: readFileSync("plupin.json", "utf8") })
 		},
 	}
 }
@@ -59,19 +43,7 @@ function reportBundleSize(): PluginOption {
 export default defineConfig({
 	base: "./",
 	build: { target: "es2022", assetsInlineLimit: 0, modulePreload: { polyfill: false } },
-	resolve: {
-		// One copy of three: the character package lives in the platform checkout and would otherwise bring
-		// its own, and two copies cannot share a scene.
-		dedupe: ["three"],
-		alias: [
-			{ find: /^three$/, replacement: resolve("node_modules/three/build/three.module.js") },
-			{ find: /^three\/examples\/(.*)$/, replacement: resolve("node_modules/three/examples/$1") },
-			...(characterSource
-				? [{ find: /^@plupin\/character(\/.*)?$/, replacement: `${characterSource}/src$1` }]
-				: []),
-			// The published SDK (0.2.0) predates rollPlatformRandom; the workspace one has it.
-			...(sdkSource ? [{ find: /^@plupin\/game-sdk$/, replacement: `${sdkSource}/src/index.ts` }] : []),
-		],
-	},
+	// One copy of three: the character package takes it as a peer, so the game's copy is the scene's.
+	resolve: { dedupe: ["three"] },
 	plugins: [emitManifest(), reportBundleSize()],
 })

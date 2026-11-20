@@ -20,27 +20,63 @@
 					<svg viewBox="0 0 44 44" aria-hidden="true"><circle class="track" cx="22" cy="22" r="19" /><circle class="bar" id="timer-bar" cx="22" cy="22" r="19" /></svg>
 					<b data-testid="time">90</b>
 				</div>
-				<div class="special" id="special" hidden><span class="star">★</span> <span id="special-text"></span></div>
+				<div class="goal" id="goal" title="Koin tim untuk bintang">
+					<div class="goal-bar"><i id="goal-fill"></i><s class="s1"></s><s class="s2"></s><s class="s3"></s></div>
+					<span class="goal-text" id="goal-text"></span>
+				</div>
 				<div class="coins" id="coins-chip"><i class="coin"></i><b data-testid="coins">0</b></div>
 			</header>
-			<button class="icon sound" id="mute" type="button" aria-label="Suara"><span id="mute-icon">♪</span></button>
+			<div class="chips" id="chips" hidden>
+				<div class="special" id="special" hidden><span class="star">★</span> <span id="special-text"></span></div>
+				<div class="combo" id="combo" hidden><b id="combo-n">x2</b><span>KOMBO TIM</span><i id="combo-bar"></i></div>
+				<div class="rush" id="rush" hidden>JAM SIBUK! bayaran +25%</div>
+			</div>
+			<div class="top-buttons">
+				<button class="icon" id="mute" type="button" aria-label="Suara"><span id="mute-icon">♫</span></button>
+				<button class="icon" id="open-settings" type="button" aria-label="Pengaturan" data-testid="settings">⚙</button>
+			</div>
 			<div class="hud-extra"><span data-testid="served">0</span><span data-testid="room">solo</span><span data-testid="players">1</span></div>
-			<p class="hint" id="hint" hidden></p>
-			<div class="countdown" id="countdown" hidden><b>3</b></div>
 
-			<section class="screen" id="title" data-testid="title">
+			<div class="dock" id="dock" hidden>
+				<p class="hint" id="hint" data-testid="hint" hidden></p>
+				<div class="tray" id="tray" data-testid="tray">
+					<span class="tray-label">PIRINGMU</span>
+					<div class="tray-slots" id="tray-slots"></div>
+					<span class="tray-recipe" id="tray-recipe"></span>
+				</div>
+				<div class="emotes" id="emotes" hidden></div>
+			</div>
+			<div class="countdown" id="countdown" hidden><b>3</b></div>
+			<div class="banner" id="banner" hidden></div>
+			<button class="music-pill" id="music-pill" type="button" hidden>♪ Ketuk untuk menyalakan musik</button>
+
+			<section class="screen" id="gate" data-testid="gate" hidden>
+				<div class="panel">
+					<h2>Masuk dulu ke Plupin</h2>
+					<p class="sub">Warung Desa memakai akun Plupin-mu: karakter, skin, dan emote yang sudah kamu punya ikut masuk ke sini. Skin-mu berlaku di semua game Plupin.</p>
+					<div class="buttons">
+						<button class="big primary" id="gate-signin" type="button" data-testid="gate-signin">MASUK DENGAN PLUPIN</button>
+						<a class="big ghost as-link" id="gate-signup" target="_blank" rel="noopener">BUAT AKUN</a>
+					</div>
+					<p class="fine" id="gate-note"></p>
+				</div>
+			</section>
+
+			<section class="screen" id="title" data-testid="title" hidden>
 				<div class="panel title-panel">
 					<h1 class="logo" aria-label="Warung Desa"><span class="word"></span></h1>
 					<p class="tagline">Masak bareng, layani yang lapar, kejar bintang.</p>
-					<div class="who">
-						<input id="name" maxlength="12" autocomplete="off" aria-label="Namamu" placeholder="Namamu" />
-						<div class="swatches" id="swatches" role="radiogroup" aria-label="Warna Plup"></div>
+					<div class="account" id="account" data-testid="account">
+						<span class="account-face" id="account-face"></span>
+						<span class="account-who"><b id="account-name"></b><small id="account-sub"></small></span>
+						<a class="account-edit" id="account-edit" target="_blank" rel="noopener">Ganti karakter</a>
 					</div>
 					<div class="buttons">
 						<button class="big primary" id="play-solo" type="button" data-testid="start">MAIN</button>
-						<button class="big" id="play-party" type="button" data-testid="party">AJAK TEMAN</button>
+						<button class="big" id="play-party" type="button" data-testid="party">MABAR · AJAK TEMAN</button>
 						<button class="big ghost" id="open-help" type="button">CARA MAIN</button>
 					</div>
+					<p class="fine">Mabar bukan cuma lebih ramai: dua koki bisa menggoreng lebih cepat, oper piring, dan melayani <b>pesanan pesta</b> yang bayarannya dua kali lipat.</p>
 				</div>
 			</section>
 
@@ -62,12 +98,30 @@
 				<div class="panel">
 					<h2>Cara main</h2>
 					<ol class="steps">
-						<li><i class="ic nasi"></i><span>Ketuk <b>bakul</b> atau <b>cobek</b> untuk menaruh bahan di piring.</span></li>
+						<li><i class="ic nasi"></i><span>Ketuk <b>bakul</b>, <b>toples kerupuk</b> atau <b>cobek</b>: bahannya masuk ke piringmu (maksimal 3).</span></li>
 						<li><i class="ic tempe"></i><span>Ketuk <b>wajan</b> untuk goreng tempe. Tunggu <b>ting!</b>, ketuk lagi untuk mengambilnya.</span></li>
-						<li><i class="ic plate"></i><span>Cocokkan isi piring dengan <b>pesanan</b> di atas kepala pelanggan, lalu ketuk dia.</span></li>
-						<li><i class="ic star"></i><span>Cepat dapat tip. Pesanan <b>spesial</b> bayar lebih. Kumpulkan 60, 110, 160 koin untuk bintang.</span></li>
+						<li><i class="ic plate"></i><span>Cocokkan isi piring dengan <b>pesanan</b> di atas kepala pelanggan, lalu ketuk dia. Cepat dapat tip.</span></li>
+						<li><i class="ic team"></i><span><b>Mabar:</b> ketuk wajan temanmu yang lagi menggoreng untuk <b>membantu mengaduk</b> (matang lebih cepat). Ketuk koki lain untuk <b>mengoper piring</b>. Pesanan <b>pesta</b> butuh dua piring dari dua koki, dan layanan beruntun membangun <b>kombo tim</b>.</span></li>
+						<li><i class="ic star"></i><span>Kumpulkan koin tim untuk bintang. Makin banyak koki, makin ramai pelanggan, dan target bintangnya naik.</span></li>
 					</ol>
 					<div class="buttons"><button class="big primary" id="close-help" type="button">SIAP</button></div>
+				</div>
+			</section>
+
+			<section class="screen modal" id="settings" data-testid="settings-panel" hidden>
+				<div class="panel">
+					<h2>Pengaturan</h2>
+					<div class="rows">
+						<label class="row"><span>Musik</span><input type="range" id="set-music" min="0" max="100" step="5" aria-label="Volume musik" /></label>
+						<label class="row"><span>Efek suara</span><input type="range" id="set-sfx" min="0" max="100" step="5" aria-label="Volume efek" /></label>
+						<div class="row"><span>Grafik</span><div class="seg" id="set-quality" role="radiogroup" aria-label="Kualitas grafik"><button type="button" data-q="rendah">Rendah</button><button type="button" data-q="sedang">Sedang</button><button type="button" data-q="tinggi">Tinggi</button></div></div>
+						<label class="row"><span>Guncangan layar</span><input type="checkbox" id="set-shake" /></label>
+						<label class="row"><span>Petunjuk langkah</span><input type="checkbox" id="set-hints" /></label>
+					</div>
+					<div class="buttons">
+						<button class="big ghost" id="set-replay" type="button">ULANGI CARA MAIN</button>
+						<button class="big primary" id="close-settings" type="button">SELESAI</button>
+					</div>
 				</div>
 			</section>
 
@@ -77,6 +131,7 @@
 					<div class="stars" id="stars-row" data-testid="stars" aria-live="polite"><i></i><i></i><i></i></div>
 					<p class="big-number"><span id="final-coins">0</span><small>koin</small></p>
 					<p class="sub" data-testid="summary" id="summary"></p>
+					<ul class="team" id="team" data-testid="team"></ul>
 					<ol class="board" data-testid="board" id="board"></ol>
 					<div class="buttons">
 						<button class="big primary" id="again" type="button" data-testid="again">MAIN LAGI</button>
