@@ -6,5 +6,20 @@
   "authority": "host",
   "maxPlayers": 4,
   "routing": "static",
-  "leaderboards": [{ "id": "koin", "sort": "desc", "aggregate": "best", "window": "all" }]
+  "leaderboards": [
+    {
+      "id": "koin",
+      "sort": "desc",
+      "aggregate": "best",
+      "window": "all"
+    }
+  ],
+  "products": [
+    {
+      "sku": "celemek-emas",
+      "title": "Celemek emas",
+      "price": 20,
+      "kind": "permanent"
+    }
+  ]
 }

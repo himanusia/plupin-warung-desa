@@ -9,6 +9,9 @@ export type Item = "nasi" | "tempe" | "sambal"
 export type StationId = "nasi" | "sambal" | "wajan"
 export type Target = { station: StationId } | { customer: number }
 
+/** A seat is one player at the stall. Solo play is one seat called `you`. */
+export type Seat = string
+
 export interface Recipe {
 	id: string
 	name: string
@@ -44,7 +47,10 @@ export interface State {
 	coins: number
 	served: number
 	left: number
-	plate: Item[]
+	/** Each seat carries its own plate; the wok, the counter and the coins are shared. */
+	plates: Record<Seat, Item[]>
+	/** The recipe id that pays half again today (the free roll), or null. */
+	special: string | null
 	wajan: Wajan
 	orders: (Order | null)[]
 	nextOrderAt: number
@@ -56,23 +62,24 @@ export interface State {
 
 /** What happened, for the screen to react to (a sound, an emote). The rules never read it back. */
 export type GameEvent =
-	| { kind: "took"; item: Item }
+	| { kind: "took"; seat: Seat; item: Item }
 	| { kind: "frying" }
 	| { kind: "ready" }
-	| { kind: "have"; item: Item }
-	| { kind: "full" }
-	| { kind: "served"; slot: number; coins: number }
-	| { kind: "wrong"; slot: number }
+	| { kind: "have"; seat: Seat; item: Item }
+	| { kind: "full"; seat: Seat }
+	| { kind: "served"; seat: Seat; slot: number; coins: number }
+	| { kind: "wrong"; seat: Seat; slot: number }
 	| { kind: "left"; slot: number }
 	| { kind: "over"; stars: 0 | 1 | 2 | 3 }
 
-export function create(seed: number): State {
+export function create(seed: number, special: string | null = null): State {
 	return {
 		now: 0,
 		coins: 0,
 		served: 0,
 		left: 0,
-		plate: [],
+		plates: {},
+		special,
 		wajan: { state: "idle" },
 		orders: Array.from({ length: SLOTS }, () => null),
 		nextOrderAt: 1,
@@ -97,27 +104,40 @@ export function starsFor(coins: number): 0 | 1 | 2 | 3 {
 const sameItems = (a: readonly Item[], b: readonly Item[]) =>
 	a.length === b.length && [...a].sort().join() === [...b].sort().join()
 
+/** A seat sits down at the stall with an empty plate. Idempotent. */
+export function join(state: State, seat: Seat) {
+	state.plates[seat] ??= []
+}
+
+/** A seat leaves; what was on its plate goes with it. */
+export function leave(state: State, seat: Seat) {
+	delete state.plates[seat]
+}
+
 /** One tap on a station or a customer. Returns what happened; an impossible tap returns nothing. */
-export function tap(state: State, target: Target, now: number): GameEvent[] {
+export function tap(state: State, seat: Seat, target: Target, now: number): GameEvent[] {
 	tick(state, now)
 	if (state.over) return []
+	join(state, seat)
+	const plate = state.plates[seat] as Item[]
 	if ("customer" in target) {
 		const order = state.orders[target.customer]
 		if (!order) return []
 		const slot = target.customer
-		if (!sameItems(state.plate, order.recipe.items)) {
-			state.plate = []
-			return [{ kind: "wrong", slot }]
+		if (!sameItems(plate, order.recipe.items)) {
+			plate.length = 0
+			return [{ kind: "wrong", seat, slot }]
 		}
 		// Patience left is the tip: a fast plate is worth up to half again.
 		const patience = Math.max(0, 1 - (now - order.arrivedAt) / PATIENCE_SECONDS)
-		const coins = order.recipe.coins + Math.ceil(order.recipe.coins * 0.5 * patience)
+		const special = state.special === order.recipe.id ? Math.ceil(order.recipe.coins * 0.5) : 0
+		const coins = order.recipe.coins + Math.ceil(order.recipe.coins * 0.5 * patience) + special
 		state.coins += coins
 		state.served += 1
-		state.plate = []
+		plate.length = 0
 		state.orders[slot] = null
 		state.nextOrderAt = Math.max(state.nextOrderAt, now + 1.5)
-		return [{ kind: "served", slot, coins }]
+		return [{ kind: "served", seat, slot, coins }]
 	}
 	const { station } = target
 	if (station === "wajan") {
@@ -126,16 +146,16 @@ export function tap(state: State, target: Target, now: number): GameEvent[] {
 			return [{ kind: "frying" }]
 		}
 		if (state.wajan.state === "frying") return []
-		if (state.plate.includes("tempe")) return [{ kind: "have", item: "tempe" }]
-		if (state.plate.length >= PLATE_MAX) return [{ kind: "full" }]
+		if (plate.includes("tempe")) return [{ kind: "have", seat, item: "tempe" }]
+		if (plate.length >= PLATE_MAX) return [{ kind: "full", seat }]
 		state.wajan = { state: "idle" }
-		state.plate.push("tempe")
-		return [{ kind: "took", item: "tempe" }]
+		plate.push("tempe")
+		return [{ kind: "took", seat, item: "tempe" }]
 	}
-	if (state.plate.includes(station)) return [{ kind: "have", item: station }]
-	if (state.plate.length >= PLATE_MAX) return [{ kind: "full" }]
-	state.plate.push(station)
-	return [{ kind: "took", item: station }]
+	if (plate.includes(station)) return [{ kind: "have", seat, item: station }]
+	if (plate.length >= PLATE_MAX) return [{ kind: "full", seat }]
+	plate.push(station)
+	return [{ kind: "took", seat, item: station }]
 }
 
 /** Advance the clock: the wok finishes, patience runs out, customers arrive, the shift ends. */

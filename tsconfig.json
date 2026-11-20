@@ -13,6 +13,7 @@
     "types": ["vite/client", "node", "bun"],
     "paths": {
       "@plupin/character": ["../../packages/character/src/index.ts"],
+      "@plupin/game-sdk": ["../../packages/game-sdk/src/index.ts"],
       "@plupin/character/*": ["../../packages/character/src/*.ts"]
     }
   },

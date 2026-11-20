@@ -12,9 +12,12 @@ import { defineConfig, type PluginOption } from "vite"
  * `example/warung-desa`) it resolves to `packages/character`; set PLUPIN_CHARACTER to point
  * somewhere else. Once the package is published the alias disappears and nothing else changes.
  */
-const characterSource = [process.env.PLUPIN_CHARACTER, resolve("../../packages/character")]
-	.filter((path): path is string => !!path)
-	.find((path) => existsSync(resolve(path, "src/index.ts")))
+const source = (env: string, folder: string) =>
+	[process.env[env], resolve(`../../packages/${folder}`)]
+		.filter((path): path is string => !!path)
+		.find((path) => existsSync(resolve(path, "src/index.ts")))
+const characterSource = source("PLUPIN_CHARACTER", "character")
+const sdkSource = source("PLUPIN_GAME_SDK", "game-sdk")
 
 function emitManifest(): PluginOption {
 	return {
@@ -57,9 +60,13 @@ export default defineConfig({
 	base: "./",
 	build: { target: "es2022", assetsInlineLimit: 0, modulePreload: { polyfill: false } },
 	resolve: {
-		alias: characterSource
-			? [{ find: /^@plupin\/character(\/.*)?$/, replacement: `${characterSource}/src$1` }]
-			: [],
+		alias: [
+			...(characterSource
+				? [{ find: /^@plupin\/character(\/.*)?$/, replacement: `${characterSource}/src$1` }]
+				: []),
+			// The published SDK (0.2.0) predates rollPlatformRandom; the workspace one has it.
+			...(sdkSource ? [{ find: /^@plupin\/game-sdk$/, replacement: `${sdkSource}/src/index.ts` }] : []),
+		],
 	},
 	plugins: [emitManifest(), reportBundleSize()],
 })

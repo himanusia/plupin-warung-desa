@@ -29,9 +29,22 @@ export function hit(x: number, y: number): { customer: number } | { station: Sta
 	return null
 }
 
+export interface Other {
+	x: number
+	clip: ClipRef
+	seconds: number
+	face: string
+	tag: string
+	colour: string
+}
+
 export interface Scene {
 	state: State
+	others: Other[]
+	apron: boolean
 	player: { x: number; moving: boolean; facing: 1 | -1 }
+	/** Whose plate is drawn: this seat's. */
+	seat: string
 	playing: Playing | null
 	now: number
 	/** Real seconds since the page loaded, for idle motion that must not depend on the round. */
@@ -65,9 +78,12 @@ function text(ctx: CanvasRenderingContext2D, value: string, x: number, y: number
 /** Customers are told apart by body colour: the character package paints one colour per body. */
 const CUSTOMER_COLOURS = ["#6fa8ff", "#ff8a65", "#7bd389", "#c39bff", "#ffd966", "#ff9ecb"]
 const PLAYER_COLOUR = "#ffd24d"
+/** What the gold apron changes: the body colour, nothing else. */
+const APRON_COLOUR = "#d4af37"
+export const OTHER_COLOURS = ["#6fa8ff", "#ff8a65", "#7bd389", "#c39bff"]
 
 export function draw(ctx: CanvasRenderingContext2D, scene: Scene) {
-	const { state, player, playing, now, wall } = scene
+	const { state, player, playing, now, wall, others, apron } = scene
 	// Back wall, awning, floor. The wall and the floor run past the stage edges, so a tall phone
 	// shows more warung instead of black bars.
 	ctx.fillStyle = "#e8c98f"
@@ -101,6 +117,7 @@ export function draw(ctx: CanvasRenderingContext2D, scene: Scene) {
 		})
 		box(ctx, x - 50, 96, 100, 62 + order.recipe.items.length * 0, "#fff3dc")
 		text(ctx, order.recipe.name, x, 114, 10, "#4a2f0b")
+		if (state.special === order.recipe.id) text(ctx, "★ spesial", x + 38, 104, 9, "#d8432f", "center")
 		order.recipe.items.forEach((item, index) => {
 			const style = ITEM_STYLE[item]
 			const left = x - (order.recipe.items.length * 30) / 2 + index * 30
@@ -132,6 +149,21 @@ export function draw(ctx: CanvasRenderingContext2D, scene: Scene) {
 		else text(ctx, "ketuk", x, STATION_TOP + 52, 10, "#2b1d12")
 	}
 
+	// The other players at the stall, then me on top.
+	for (const other of others) {
+		drawCharacter2D(ctx, {
+			rig: "r6",
+			look: { bodyColor: other.colour, face: face(other.face) },
+			x: other.x,
+			y: FLOOR_Y,
+			scale: 15,
+			view: "front",
+			clip: other.clip,
+			seconds: other.seconds,
+		})
+		text(ctx, other.tag, other.x, FLOOR_Y + 22, 11, "#2b1d12")
+	}
+
 	// The player: side view while walking, front view otherwise or while an emote plays.
 	let clip: ClipRef = "idle"
 	let seconds = wall
@@ -147,7 +179,7 @@ export function draw(ctx: CanvasRenderingContext2D, scene: Scene) {
 	}
 	drawCharacter2D(ctx, {
 		rig: "r6",
-		look: { bodyColor: PLAYER_COLOUR, face: face(expression) },
+		look: { bodyColor: apron ? APRON_COLOUR : PLAYER_COLOUR, face: face(expression) },
 		x: player.x,
 		y: FLOOR_Y,
 		scale: 15,
@@ -157,11 +189,12 @@ export function draw(ctx: CanvasRenderingContext2D, scene: Scene) {
 	})
 	if (playing) text(ctx, playing.emote.glyph, player.x, FLOOR_Y - 96 - Math.min(16, seconds * 20), 18, "#4a2f0b")
 
-	// The plate.
+	// The plate: mine.
+	const plate = state.plates[scene.seat] ?? []
 	box(ctx, 95, 612, 200, 52, "#fff3dc")
 	text(ctx, "piring", 195, 606, 10, "#4a2f0b")
 	for (let slot = 0; slot < PLATE_MAX; slot += 1) {
-		const item = state.plate[slot]
+		const item = plate[slot]
 		const left = 108 + slot * 62
 		ctx.fillStyle = "#e8d9b8"
 		ctx.fillRect(left, 622, 56, 32)

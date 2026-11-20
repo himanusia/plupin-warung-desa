@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
 	create,
+	leave,
 	FRY_SECONDS,
 	PATIENCE_SECONDS,
 	RECIPES,
@@ -10,6 +11,7 @@ import {
 	tick,
 } from "./game"
 
+const ME = "you"
 const first = (state: ReturnType<typeof create>) => {
 	tick(state, 1)
 	const order = state.orders.find((entry) => entry !== null)
@@ -22,11 +24,11 @@ function plate(state: ReturnType<typeof create>, items: readonly string[], at: n
 	let now = at
 	for (const item of items) {
 		if (item === "tempe") {
-			tap(state, { station: "wajan" }, now)
+			tap(state, ME, { station: "wajan" }, now)
 			now += FRY_SECONDS + 0.1
 			tick(state, now)
-			tap(state, { station: "wajan" }, now)
-		} else tap(state, { station: item as "nasi" | "sambal" }, now)
+			tap(state, ME, { station: "wajan" }, now)
+		} else tap(state, ME, { station: item as "nasi" | "sambal" }, now)
 	}
 	return now
 }
@@ -45,12 +47,12 @@ describe("warung desa rules", () => {
 
 	test("the wok takes three seconds and tempe cannot be taken early", () => {
 		const state = create(1)
-		expect(tap(state, { station: "wajan" }, 1)).toEqual([{ kind: "frying" }])
-		expect(tap(state, { station: "wajan" }, 2)).toEqual([])
-		expect(state.plate).toEqual([])
+		expect(tap(state, ME, { station: "wajan" }, 1)).toEqual([{ kind: "frying" }])
+		expect(tap(state, ME, { station: "wajan" }, 2)).toEqual([])
+		expect(state.plates[ME]).toEqual([])
 		expect(tick(state, 1 + FRY_SECONDS)).toEqual([{ kind: "ready" }])
-		expect(tap(state, { station: "wajan" }, 5)).toEqual([{ kind: "took", item: "tempe" }])
-		expect(state.plate).toEqual(["tempe"])
+		expect(tap(state, ME, { station: "wajan" }, 5)).toEqual([{ kind: "took", seat: ME, item: "tempe" }])
+		expect(state.plates[ME]).toEqual(["tempe"])
 		expect(state.wajan.state).toBe("idle")
 	})
 
@@ -58,7 +60,7 @@ describe("warung desa rules", () => {
 		const fast = create(3)
 		const { order, slot } = first(fast)
 		const done = plate(fast, order.recipe.items, 1.2)
-		const [served] = tap(fast, { customer: slot }, done)
+		const [served] = tap(fast, ME, { customer: slot }, done)
 		expect(served?.kind).toBe("served")
 		expect(fast.coins).toBeGreaterThan(order.recipe.coins)
 		expect(fast.coins).toBeLessThanOrEqual(Math.ceil(order.recipe.coins * 1.5))
@@ -67,17 +69,47 @@ describe("warung desa rules", () => {
 		const next = first(wrong)
 		const other = RECIPES.find((recipe) => recipe.id !== next.order.recipe.id)
 		plate(wrong, other?.items ?? [], 1.2)
-		expect(tap(wrong, { customer: next.slot }, 9)).toEqual([{ kind: "wrong", slot: next.slot }])
-		expect(wrong.plate).toEqual([])
+		expect(tap(wrong, ME, { customer: next.slot }, 9)).toEqual([{ kind: "wrong", seat: ME, slot: next.slot }])
+		expect(wrong.plates[ME]).toEqual([])
 		expect(wrong.coins).toBe(0)
 	})
 
 	test("a plate holds three different things, and says so", () => {
 		const state = create(1)
-		tap(state, { station: "nasi" }, 1)
-		expect(tap(state, { station: "nasi" }, 1.1)).toEqual([{ kind: "have", item: "nasi" }])
-		tap(state, { station: "sambal" }, 1.2)
-		expect(state.plate).toEqual(["nasi", "sambal"])
+		tap(state, ME, { station: "nasi" }, 1)
+		expect(tap(state, ME, { station: "nasi" }, 1.1)).toEqual([{ kind: "have", seat: ME, item: "nasi" }])
+		tap(state, ME, { station: "sambal" }, 1.2)
+		expect(state.plates[ME]).toEqual(["nasi", "sambal"])
+	})
+
+	test("two seats keep their own plates but share the wok and the counter", () => {
+		const state = create(3)
+		const { order, slot } = first(state)
+		tap(state, "ana", { station: "nasi" }, 1.1)
+		tap(state, "budi", { station: "sambal" }, 1.2)
+		expect(state.plates.ana).toEqual(["nasi"])
+		expect(state.plates.budi).toEqual(["sambal"])
+		// One wok: Ana starts it, Budi cannot start a second batch while it is frying.
+		expect(tap(state, "ana", { station: "wajan" }, 2)).toEqual([{ kind: "frying" }])
+		expect(tap(state, "budi", { station: "wajan" }, 2.5)).toEqual([])
+		// Whoever serves first is paid; the order is gone for the other seat.
+		state.plates.ana = [...order.recipe.items]
+		expect(tap(state, "ana", { customer: slot }, 3)[0]?.kind).toBe("served")
+		expect(tap(state, "budi", { customer: slot }, 3.1)).toEqual([])
+		leave(state, "budi")
+		expect(state.plates.budi).toBeUndefined()
+	})
+
+	test("today's special pays half again on top of the tip", () => {
+		const plain = create(3)
+		const special = create(3, first(create(3)).order.recipe.id)
+		const a = first(plain)
+		const b = first(special)
+		plate(plain, a.order.recipe.items, 1.2)
+		plate(special, b.order.recipe.items, 1.2)
+		tap(plain, ME, { customer: a.slot }, 9)
+		tap(special, ME, { customer: b.slot }, 9)
+		expect(special.coins).toBeGreaterThan(plain.coins)
 	})
 
 	test("a customer who waits too long leaves", () => {
@@ -93,7 +125,7 @@ describe("warung desa rules", () => {
 		state.coins = 112
 		const events = tick(state, ROUND_SECONDS)
 		expect(events).toContainEqual({ kind: "over", stars: 2 })
-		expect(tap(state, { station: "nasi" }, ROUND_SECONDS + 1)).toEqual([])
+		expect(tap(state, ME, { station: "nasi" }, ROUND_SECONDS + 1)).toEqual([])
 		expect([0, 59, 60, 110, 160].map(starsFor)).toEqual([0, 0, 1, 2, 3])
 	})
 })
